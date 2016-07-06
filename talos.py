@@ -194,6 +194,98 @@ def unpad(block):
     return block[:-ord(block[-1])]
 
 
+def encrypt_file(input_file, output_file, user_password):
+    SLEEP = 0.05  # To prevent core from overheating
+    BLOCK_SIZE = AES.block_size
+    start = datetime.now()
+    key = create_key(user_password)
+    cipher = AESCipher(key, "Thisistestvector")
+    i_file = open(input_file, "rb")
+    o_file = open(output_file, "wb")
+    finished = False
+    block_count = 0
+    print("Start Encrypting")
+    while not finished:
+        # chunks of 16 MB
+        chunk = i_file.read(BLOCK_SIZE * 1000000)
+        print("Took Chunk")
+        if len(chunk == 0):
+            finished = True
+            break
+        encrypted_blocks = []
+        if chunk:
+            # creates list of blocks at once - very efficient
+            blocks = [chunk[i:i+BLOCK_SIZE] for i
+                      in range(0, len(chunk), BLOCK_SIZE)]
+            for block in blocks:
+                encrypted_data = cipher.encrypt(block)
+                encrypted_blocks.append(encrypted_data)
+                # every 16 KB
+                if len(encrypted_blocks) % 1000 == 0:
+                    block_count += 1000
+                    print("Total block count is: %s" % str(block_count))
+                    time.sleep(SLEEP)
+        encrypted_chunk = b''.join(encrypted_blocks)
+        print("Writing Chunk")
+        o_file.write(encrypted_chunk)
+    print("Done Encrypting!")
+    i_file.close()
+    o_file.close()
+    end = datetime.now()
+    time_diff = end - start
+    # add better logging options, parameterize it
+    with open("log.txt", "a+") as f:
+        f.write("Time elapsed: %s\n" % time_diff)
+        f.write("Size was: %s\n" % size_of_fmt(os.path.getsize(output_file)))
+        f.write("Sleep was: %s\n" % str(SLEEP))
+        f.write('\n')
+    print("Time Elapsed: %s" % time_diff)
+
+
+def decrypt_file(encrypted_file, output_file):
+    SLEEP = 0.05
+    BLOCK_SIZE = AES.block_size
+    password = get_password()
+    key = create_key(password)
+    cipher = AESCipher(key, "Thisistestvector")
+    start = datetime.now()
+    i_file = open(encrypted_file, "rb")
+    o_file = open(output_file, "wb")
+    finished = False
+    block_count = 0
+    while not finished:
+        chunk = i_file.read(BLOCK_SIZE * 1000000)
+        if len(chunk) == 0:
+            finished = True
+            break
+        else:
+            blocks = [chunk[i:i+BLOCK_SIZE] for i
+                      in range(0, len(chunk), BLOCK_SIZE)]
+            decrypted_blocks = []
+            for block in blocks:
+                block_count += 1
+                decrypted_data = cipher.decrypt(block)
+                decrypted_blocks.append(decrypted_data)
+                if block_count % 1000 == 0:
+                    print("Total block_count is: %s" % str(block_count))
+                    time.sleep(SLEEP)
+            decrypted_data = b''.join(decrypted_blocks)
+            o_file.write(decrypted_data)
+            # o_file.flush()
+    print("Done Decrypting")
+    i_file.close()
+    o_file.close()
+    end = datetime.now()
+    time_diff = end - start
+    print("Time Elapsed: %s" % time_diff)
+    with open("log.txt", "a+") as f:
+        f.write("Decrypting - Time Elapsed: %s\n" % time_diff)
+        f.write("Size was: %s\n" % size_of_fmt(os.path.getsize(output_file)))
+        
+
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Collect arbitrary list of "
                                      "files and directories into single file")
