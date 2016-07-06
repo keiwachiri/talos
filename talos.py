@@ -46,8 +46,14 @@ import argparse
 import hashlib
 import getpass
 
+from Crypto.Cipher import AES
+from Crypto import Random
+
 
 # TODO - add option to plug disfigure password function as an argument
+# TODO - optimize memory USAGE
+# TODO - add upload option somehow
+
 
 python_v = sys.version_info.major
 
@@ -65,6 +71,26 @@ elif python_v == 2:
         "deflated": zipfile.ZIP_DEFLATED,
         "stored": zipfile.ZIP_STORED,
     }
+
+
+class AESCipher:
+    def __init__(self, key, vecto):
+        self.key = key
+        if not len(vector) == 16:
+            raise ValueError("Vector must be of length 16")
+        self.vector = vector
+        self.encrypt_cipher = AES.new(self.key, AES.MODE_CBC, self.vector)
+        self.decrypt_cipher = AES.new(self.key, AES.MODE_CBC, self.vector)
+
+    def encrypt(self, raw):
+        raw = pad(raw)
+        ciphertext = self.encrypt_cipher.encrypt(raw)
+        return ciphertext
+
+    def decrypt(self, enc):
+        plaintext = self.decrypt_cipher.decrypt(enc)
+        return plaintext
+
 
 
 def write_directory(abs_path, zip_file, skip_hidden=False):
@@ -155,6 +181,17 @@ def create_key(password):
     key_hash_obj = hashlib.sha256(password.encode())
     return key_hash_obj.digest()
 
+
+def pad(block):
+    size = 16
+    if not len(block) == 16:
+        block = block + ((size - len(block) % size) *
+                         chr(size - (len(block) % size)).encode())
+    return block
+
+
+def unpad(block):
+    return block[:-ord(block[-1])]
 
 
 if __name__ == "__main__":
