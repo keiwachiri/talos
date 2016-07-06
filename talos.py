@@ -43,7 +43,11 @@ import sys
 from datetime import datetime
 import zipfile
 import argparse
+import hashlib
+import getpass
 
+
+# TODO - add option to plug disfigure password function as an argument
 
 python_v = sys.version_info.major
 
@@ -124,6 +128,33 @@ def size_of_fmt(size):
             return "%3.2f%s" % (size, unit)
         size /= 1024.0
     return "%.1f%s" % (num, "TB")
+
+
+def get_password():
+    password = getpass.getpass()
+    while len(password) < 10:
+        password = getpass.getpass("Password must be 10 char long atleast! ")
+    password_repeat = ''
+    while password_repeat != password:
+        password_repeat = getpass.getpass("Confirm your passwornd: ")
+    return password
+
+
+def disfigure_password(password):
+    disfigured_password = ""
+    for ind in range(len(password)):
+        disfigured_password += ("%d%s%d%s%d%s" %
+            (ind, chr(ord('a') + ind), ord('a') + ind, password[ind],
+             ord('a') - ind, chr(ord(password[ind]) +
+                                 len(password) - ind).capitalize()))
+    return disfigured_password
+
+
+def create_key(password):
+    disfigured_password = disfigure_password(password)
+    key_hash_obj = hashlib.sha256(password.encode())
+    return key_hash_obj.digest()
+
 
 
 if __name__ == "__main__":
