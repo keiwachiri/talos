@@ -41,6 +41,8 @@
 import os
 import sys
 from datetime import datetime
+import zipfile
+import argparse
 
 
 python_v = sys.version_info.major
@@ -94,7 +96,7 @@ def zip_it(dirs, files, output_file, method, skip_hidden=False, encrypt=False):
     files_to_zip = []
     for d in dirs:
         dir_path = os.path.normpath(os.path.join(os.getcwd(), d))
-        if exists(dir_path):
+        if os.path.exists(dir_path):
             dirs_to_zip.append(dir_path)
         else:
             print("Invalid directory given: %s" % d)
@@ -114,4 +116,28 @@ def zip_it(dirs, files, output_file, method, skip_hidden=False, encrypt=False):
     time_diff = end - start
     print("DONE")
     print("Time Elapsed: %s" % time_diff)
-        
+
+
+def size_of_fmt(size):
+    for unit in ["B", "KB", "MB", "GB"]:
+        if abs(size) < 1024.0:
+            return "%3.2f%s" % (size, unit)
+        size /= 1024.0
+    return "%.1f%s" % (num, "TB")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Collect arbitrary list of "
+                                     "files and directories into single file")
+    parser.add_argument("-d", type=str, nargs="+", default=[],
+                        help="directories that will be processed")
+    parser.add_argument("-f", type=str, nargs="+", default=[],
+                        help="files that will be processed")
+    parser.add_argument("-o", type=str, help="desired name of output file",
+                        default="talos.zip")
+    parser.add_argument("-m", type=str, help="compression mode",
+                        default="deflated", choices=compression_methods)
+    parser.add_argument("--skip-hidden", help="skip hidden files and dirs",
+                        action="store_const", const=True, default=False)
+    args = parser.parse_args()
+    zip_it(args.d, args.f, args.o, args.m, skip_hidden=args.skip_hidden)
